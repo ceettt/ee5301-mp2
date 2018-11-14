@@ -35,3 +35,6 @@ placement
 # Emacs files
 *~
 #*#
+
+*.txt
+test/
