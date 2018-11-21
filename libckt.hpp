@@ -6,6 +6,7 @@
 #include <vector>
 #include <map>
 #include <fstream>
+#include <algorithm>
 
 enum GateType {NAND, NOR, AND, OR, XOR, XNOR, INV, BUF, INP, OUTP, UNDEF,
 	       TypeMAX = UNDEF};
@@ -32,7 +33,10 @@ private:
   std::vector<node*> outputs;
   // height always 1, store width with doublewidth to reduce flop
   int doublewidth;
-  
+  // double of x index
+  int dX = -1;
+  // y index
+  int Y = -1;
 public:
   // gate count
   static int count[TypeMAX + 1];
@@ -59,6 +63,18 @@ public:
   double getWidth() const {
     return (double)doublewidth / 2.0;
   }
+  int getDoubleX() const {
+    return dX;
+  }
+  int getY() const {
+    return Y;
+  }
+  void setDoubleX(int num) {
+    dX = num;
+  }
+  void setY(int num) {
+    Y = num;
+  }
   void setWidth() {
     int size = inputs.size();
     doublewidth = assignDoubleWidth(type, size);
@@ -75,6 +91,8 @@ public:
   }
   std::string printAllFanin() const;
   std::string printAllFanout() const;
+  double netHPWLCal();
+  bool fPosition();
 };
 
 

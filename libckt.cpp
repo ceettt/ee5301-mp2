@@ -13,6 +13,32 @@ int node::count[TypeMAX+1] = {};
 
 int node::doublearea = 0;
 
+bool node::fPosition() {
+  if (dX == -1 || Y == -1)
+    return false;
+  else
+    return true;
+}
+
+double node::netHPWLCal() {
+  int minDoubleX = dX, minY = Y;
+  int maxDoubleX = dX, maxY = Y;
+  for (auto i : inputs) {
+    minDoubleX = std::min(minDoubleX, i->getDoubleX());
+    maxDoubleX = std::max(maxDoubleX, i->getDoubleX());
+    minY = std::min(minY, i->getY());
+    maxY = std::min(maxY, i->getY());
+  }
+  for (auto i : outputs) {
+    minDoubleX = std::min(minDoubleX, i->getDoubleX());
+    maxDoubleX = std::max(maxDoubleX, i->getDoubleX());
+    minY = std::min(minY, i->getY());
+    maxY = std::min(maxY, i->getY());
+  }
+  return double(maxDoubleX-minDoubleX) / 2.0
+    + double(maxY-minY);
+}
+
 std::string node::printAllFanout() const
 {
   std::string target;
@@ -180,7 +206,7 @@ void printParsedLine(const std::vector<std::string>& elements)
 void printUsage()
 {
   std::cout << "USAGE:\t./placement read_ckt <FILENAME>\t\tRead circuit and write statistics to file" << std::endl;
-  std::cout << "\t./parser place <FILENAME>\t\tRead and parse a circuit using default library" << std::endl;
+  std::cout << "\t./placement place <FILENAME>\t\tRead and parse a circuit using default library" << std::endl;
 }
 
 GateType parseType(const std::string& name)
