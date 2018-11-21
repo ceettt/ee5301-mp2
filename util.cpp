@@ -16,6 +16,7 @@ std::random_device rd;
 std::mt19937 gen(rd());
 std::uniform_real_distribution<> dis(0,1);
 
+extern bool enableMultiThread;
 
 bool random_placement(const std::vector<node*>& nodes,
 		      std::vector<row*>& rows,
@@ -137,7 +138,7 @@ void swap(std::vector<row*>& rows,
   rows[row_idx2]->setElement(itm_idx2, a);
 }
 
-double layoutHPWL(std::vector<row*>& rows)
+double layoutHPWL_singlethread(std::vector<row*>& rows)
 {
   double sum = 0.0;
   for (std::size_t i = 0; i < rows.size(); ++i) 
@@ -146,6 +147,41 @@ double layoutHPWL(std::vector<row*>& rows)
     sum += i->calHPWL();
   return sum;
 }
+
+double layoutHPWL_multithread(std::vector<row*>& rows)
+{
+  // use threads to compute layout HPWL
+  std::size_t height = rows.size();
+  double sum = 0.0;
+  double *results = new double[height];
+  std::thread *threads = new std::thread[height];
+  // each thread set the coordinate of one row
+  for (std::size_t i = 0; i < height; ++i)
+    threads[i] = std::thread([&rows, i]() {
+			       rows[i]->setCoordinate(i+1);
+			     });
+  for (std::size_t i = 0; i < height; ++i)
+    threads[i].join();
+  // each thread calculate the hpwl for one row
+  for (std::size_t i = 0; i < height; ++i)
+    threads[i] = std::thread([&rows, results, i]() {
+			       results[i] = rows[i]->calHPWL();
+			     });
+  for (std::size_t i = 0; i < height; ++i)
+    threads[i].join();
+  for (std::size_t i = 0; i < height; ++i)
+    sum += results[i];
+  return sum;
+}
+
+double layoutHPWL(std::vector<row*>& rows)
+{
+  if (enableMultiThread)
+    return layoutHPWL_multithread(rows);
+  else
+    return layoutHPWL_singlethread(rows);
+}
+
 
 double kboltz(std::vector<row*>& rows,
 	      double initHPWL)

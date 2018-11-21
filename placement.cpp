@@ -5,10 +5,13 @@
 #include <string>
 #include <cmath>
 #include <chrono>
+#include <iterator>
 
 #include "libckt.hpp"
 #include "librow.hpp"
 #include "util.hpp"
+
+bool enableMultiThread = false;
 
 int main(int argc, char *argv[])
 {
@@ -53,6 +56,16 @@ int main(int argc, char *argv[])
       }
       parseCkt(ckt_file, inputs, outputs, nodes, circuit);
       ckt_file.close();
+      auto begin_iter = args.begin();
+      std::advance(begin_iter, 2);
+      for (auto iter = begin_iter; iter != args.end(); ++iter) {
+	if (*iter == "--thread") {
+	  enableMultiThread = true;
+	  if (enableMultiThread)
+	    std::cout << "Enabling multithread calculation." << std::endl;
+	  break;
+	}
+      }
       int lWidth = std::ceil(std::sqrt(node::doublearea/2.0));
       //int lHeight = std::ceil(double(node::doublearea)/(2.0*lWidth));
       int lHeight = lWidth;
