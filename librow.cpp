@@ -62,6 +62,8 @@ void row::setCoordinate(int Y) {
     i->setY(Y);
     current_dWidth += i->getDoubleWidth();
   }
+  // after all set, set the total width of the row
+  dWidthSum = current_dWidth;
 }
 
 // calculate HPWL of current row

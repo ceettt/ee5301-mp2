@@ -25,4 +25,16 @@ void destroy(std::vector<row*>& rows);
 double layoutHPWL(std::vector<row*>& rows);
 double kboltz(std::vector<row*>& rows, double initHPWL);
 
+void setCoordinate(std::vector<row*>& rows);
+
+void annealing(std::vector<row*>& rows,
+	       const double k,
+	       const double initHPWL,
+	       const int num_moves,
+	       std::ofstream& outFile);
+
+void annealingStatistics(std::ofstream& outFile,
+			 std::vector<row*>& rows,
+			 std::vector<node*>& nodes,
+			 double initHPWL);
 #endif

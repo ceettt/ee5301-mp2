@@ -22,6 +22,7 @@ int main(int argc, char *argv[])
   std::vector<node*> inputs, outputs, nodes;
   std::map<std::string, node*> circuit; 
   std::string ckt_result = "ckt_details.txt";
+  std::string annealing_step = "step.csv";
   std::vector<row*> rows;
   
   std::vector<std::string> args(argv, argv+argc);
@@ -81,13 +82,31 @@ int main(int argc, char *argv[])
 	  ++ dlWidth;
 	}
       }
+      setCoordinate(rows);
       double currentHPWL = layoutHPWL(rows);
       std::cout << "Initial HPWL:" << currentHPWL << std::endl;
       double k = kboltz(rows, currentHPWL);
       std::cout << "Initial k:" << k << std::endl;
-      // test if hpwl changed
-      currentHPWL = layoutHPWL(rows);
-      std::cout << "Current HPWL:" << currentHPWL << std::endl;
+      
+      std::ofstream annealing_step_file(annealing_step);
+      if(!annealing_step_file.is_open()) {
+	std::cout << "failed to open " << annealing_step << std::endl;
+	exit(1);
+      }
+      std::cout << "Writing to " << annealing_step << std::endl;
+      annealing_step_file << "Temp,accepted_moves,rejected_moves,HPWL"
+			  << std::endl;
+      annealing(rows, 1, currentHPWL, nodes.size(), annealing_step_file);
+      annealing_step_file.close();
+
+      std::string annealing_result("annealing_result.txt");
+      std::ofstream annealing_result_file(annealing_result);
+      if(!annealing_result_file.is_open()) {
+	std::cout << "failed to open " << annealing_result << std::endl;
+	exit(1);
+      }
+      std::cout << "Writing to " << annealing_result << std::endl;
+      annealingStatistics(annealing_result_file, rows, nodes, currentHPWL);
     } else {
       std::cout << "Not enough parameters." << std::endl;
       printUsage();

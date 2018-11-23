@@ -3,20 +3,21 @@
 #include <limits>
 #include <cmath>
 #include <thread>
+#include <exception>
+#include <fstream>
 
 #include "libckt.hpp"
 #include "librow.hpp"
 #include "util.hpp"
 
-#define MAX_TEMP 40000
+#define MAX_TEMP 4e4
 #define FRZ_TEMP 0.1
-#define INIT_RATE 0.99
+#define INIT_RATE 0.995
+#define COOL_RATE 0.95
 
 std::random_device rd;
 std::mt19937 gen(rd());
 std::uniform_real_distribution<> dis(0,1);
-
-extern bool enableMultiThread;
 
 bool random_placement(const std::vector<node*>& nodes,
 		      std::vector<row*>& rows,
@@ -111,6 +112,11 @@ void destroy(std::vector<row*>& rows)
   }
 }
 
+void setCoordinate(std::vector<row*>& rows)
+{
+  for (std::size_t i = 0; i < rows.size(); ++i) 
+    rows[i]->setCoordinate(i+1); // set coordinate for each row
+}
 bool accept_move(double dCost,
 		 double k,
 		 double T)
@@ -121,12 +127,7 @@ bool accept_move(double dCost,
   return r < boltz;
 }
 
-void annealing()
-{
-
-}
-
-// swap two elements
+// swap two elements and set coordinate
 void swap(std::vector<row*>& rows,
 	  int row_idx1, int itm_idx1,
 	  int row_idx2, int itm_idx2)
@@ -136,13 +137,59 @@ void swap(std::vector<row*>& rows,
 
   rows[row_idx1]->setElement(itm_idx1, b);
   rows[row_idx2]->setElement(itm_idx2, a);
+
+  rows[row_idx1]->setCoordinate(row_idx1+1);
+  rows[row_idx2]->setCoordinate(row_idx2+1);
 }
 
-double layoutHPWL_singlethread(std::vector<row*>& rows)
+void annealing(std::vector<row*>& rows,
+	       const double k,
+	       const double initHPWL,
+	       const int num_moves,
+	       std::ofstream& outFile)
+{
+  double currentHPWL = initHPWL;
+  double T = MAX_TEMP;
+  while (T > FRZ_TEMP) {
+    int accepted_moves = 0, rejected_moves = 0;
+    for (auto i = 0; i < num_moves; ++i) {
+      // generate a pair of node, swap, if not accepted swap back
+      std::size_t size = 0;
+      double newHPWL, dCost;
+      int row_idx1, row_idx2;
+      while (!size) { // in case generated an empty row
+	row_idx1 = gen() % rows.size();
+	size = rows[row_idx1]->size();
+      }
+      size = 0;
+      while (!size) { // in case generated an empty row
+	row_idx2 = gen() % rows.size();
+	size = rows[row_idx2]->size();
+      }
+      int itm_idx1 = gen() % rows[row_idx1]->size();
+      int itm_idx2 = gen() % rows[row_idx2]->size();
+      swap(rows, row_idx1, itm_idx1, row_idx2, itm_idx2);
+      newHPWL = layoutHPWL(rows);
+      dCost = newHPWL - currentHPWL;
+      if (accept_move(dCost, k, T)) {
+	currentHPWL = newHPWL;
+	++accepted_moves;
+      } else { // if not accepted, change the items back
+	swap(rows, row_idx1, itm_idx1, row_idx2, itm_idx2);
+	++rejected_moves;
+      }
+    }
+    T *= COOL_RATE; // cool down
+    std::cout << "Current Temperature:" << T << std::endl;
+    outFile << T << "," << accepted_moves << ","
+	    << rejected_moves << ","
+	    << currentHPWL << std::endl;
+  }
+}
+
+double layoutHPWL(std::vector<row*>& rows)
 {
   double sum = 0.0;
-  for (std::size_t i = 0; i < rows.size(); ++i) 
-    rows[i]->setCoordinate(i+1); // set coordinate for each row
   for (auto i: rows)
     sum += i->calHPWL();
   return sum;
@@ -153,53 +200,85 @@ double layoutHPWL_multithread(std::vector<row*>& rows)
   // use threads to compute layout HPWL
   std::size_t height = rows.size();
   double sum = 0.0;
-  double *results = new double[height];
+  const unsigned int n = std::thread::hardware_concurrency();
+  double *results = new double[n];
+  std::size_t *split = new std::size_t[n+1];
   std::thread *threads = new std::thread[height];
-  // each thread set the coordinate of one row
-  for (std::size_t i = 0; i < height; ++i)
-    threads[i] = std::thread([&rows, i]() {
-			       rows[i]->setCoordinate(i+1);
-			     });
-  for (std::size_t i = 0; i < height; ++i)
-    threads[i].join();
+  for (unsigned i = 0; i < n; ++i)
+    split[i] = i * height / n;
+  split[n] = height;
   // each thread calculate the hpwl for one row
-  for (std::size_t i = 0; i < height; ++i)
-    threads[i] = std::thread([&rows, results, i]() {
-			       results[i] = rows[i]->calHPWL();
+  for (unsigned i = 1; i < n; ++i)
+    threads[i] = std::thread([&rows, results, split, i]() {
+			       double inner_sum = 0.0;
+			       for (auto j = split[i]; j < split[i+1]; ++j)
+				 inner_sum += rows[j]->calHPWL();
+			       results[i] = inner_sum;
 			     });
-  for (std::size_t i = 0; i < height; ++i)
+  for (auto j = split[0]; j < split[1]; ++j)
+    sum += rows[j]->calHPWL();
+  for (unsigned i = 1; i < n; ++i) {
     threads[i].join();
-  for (std::size_t i = 0; i < height; ++i)
     sum += results[i];
+  }
   return sum;
 }
 
-double layoutHPWL(std::vector<row*>& rows)
-{
-  if (enableMultiThread)
-    return layoutHPWL_multithread(rows);
-  else
-    return layoutHPWL_singlethread(rows);
-}
-
-
+// choose k based on 50 increasing cost
 double kboltz(std::vector<row*>& rows,
 	      double initHPWL)
 {
   double currentHPWL = 0;
-  double dCost = 0;
+  double avgdCost = 0;
+  int i = 0;
   const int attempts = 50;
-  for (int i = 0; i < attempts; ++i) {
+  while (i < 50) {
     // generate a pair of node, swap then swap back
-    int row_idx1 = gen() % rows.size();
-    int row_idx2 = gen() % rows.size();
+    std::size_t size = 0;
+    int row_idx1, row_idx2;
+    while (!size) { // in case generated an empty row, likely to happen on c17
+      row_idx1 = gen() % rows.size();
+      size = rows[row_idx1]->size();
+    }
+    size = 0;
+    while (!size) { // in case generated an empty row
+      row_idx2 = gen() % rows.size();
+      size = rows[row_idx2]->size();
+    }
     int itm_idx1 = gen() % rows[row_idx1]->size();
     int itm_idx2 = gen() % rows[row_idx2]->size();
     swap(rows, row_idx1, itm_idx1, row_idx2, itm_idx2);
     currentHPWL = layoutHPWL(rows);
-    dCost += currentHPWL - initHPWL;
+    double dCost = currentHPWL - initHPWL;
+    if (dCost > 0) {
+      avgdCost += dCost;
+      ++i;
+    }
     swap(rows, row_idx1, itm_idx1, row_idx2, itm_idx2);
   }
-  dCost /= attempts;
-  return 0-(dCost/(std::log(INIT_RATE)*MAX_TEMP));
+  avgdCost /= attempts;
+  return 0 - avgdCost / (std::log(INIT_RATE)*MAX_TEMP);
+}
+
+void annealingStatistics(std::ofstream& outFile,
+			 std::vector<row*>& rows,
+			 std::vector<node*>& nodes,
+			 double initHPWL)
+{
+  double finalHPWL = layoutHPWL(rows);
+  int Height = rows.size();
+  int dWidth = 0;
+  for (auto i: rows) 
+    dWidth = std::max(dWidth, i->getSum());
+  outFile << "Initial HPWL:\t" << initHPWL << std::endl
+	    << "Final HPWL:\t" << finalHPWL << std::endl
+	    << "Final Width:\t" << dWidth / 2.0 << std::endl
+	    << "Final Height:\t" << Height << std::endl
+	    << "Total Area:\t" << Height * dWidth / 2.0
+	    << std::endl << std::endl
+	    << "Coordinates of bottem-left corner of each cell" << std::endl;
+  for (auto i:nodes)
+    outFile << i->getName() << "\t\t"
+	      << "X:" << i->getDoubleX() / 2.0 << "\t"
+	      << "Y:" << i->getY() << std::endl;
 }

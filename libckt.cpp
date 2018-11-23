@@ -206,7 +206,7 @@ void printParsedLine(const std::vector<std::string>& elements)
 void printUsage()
 {
   std::cout << "USAGE:\t./placement read_ckt <FILENAME>\t\tRead circuit and write statistics to file" << std::endl;
-  std::cout << "\t./placement place <FILENAME>\t\tRead and parse a circuit using default library" << std::endl;
+  std::cout << "\t./placement place <FILENAME>\t\tRead and start a random placement then do annealing" << std::endl;
 }
 
 GateType parseType(const std::string& name)
