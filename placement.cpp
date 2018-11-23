@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
       std::cout << "Writing to " << annealing_step << std::endl;
       annealing_step_file << "Temp,accepted_moves,rejected_moves,HPWL"
 			  << std::endl;
-      annealing(rows, 1, currentHPWL, nodes.size(), annealing_step_file);
+      annealing(rows, k, currentHPWL, nodes.size(), annealing_step_file);
       annealing_step_file.close();
 
       std::string annealing_result("annealing_result.txt");

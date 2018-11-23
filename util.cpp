@@ -81,22 +81,22 @@ bool random_placement(const std::vector<node*>& nodes,
     return true;
   } else {
     /*
-    std::cerr << "Failed attempt on random placement" << std::endl;
-    int placed = 0, nplaced = 0;
-    for (auto i : rows)
+      std::cerr << "Failed attempt on random placement" << std::endl;
+      int placed = 0, nplaced = 0;
+      for (auto i : rows)
       placed += i->getSum();
-    for (auto i : cell_list)
+      for (auto i : cell_list)
       nplaced += i->getDoubleWidth();
-    std::cerr << "Width:" << dlWidth/2.0 << std::endl
-	      << "Height:" << lHeight << std::endl
-	      << "Total area:"
-	      << node::doublearea/2.0 << std::endl
-	      << "Placed area:"
-	      << placed/2.0 << std::endl
-	      << "Not Placed area:"
-	      << nplaced/2.0 << std::endl
-	      << "Not Placed cells:"
-	      << cell_list.size() << std::endl;
+      std::cerr << "Width:" << dlWidth/2.0 << std::endl
+      << "Height:" << lHeight << std::endl
+      << "Total area:"
+      << node::doublearea/2.0 << std::endl
+      << "Placed area:"
+      << placed/2.0 << std::endl
+      << "Not Placed area:"
+      << nplaced/2.0 << std::endl
+      << "Not Placed cells:"
+      << cell_list.size() << std::endl;
     */
     return false;
   }
@@ -179,11 +179,11 @@ void annealing(std::vector<row*>& rows,
 	++rejected_moves;
       }
     }
-    T *= COOL_RATE; // cool down
     std::cout << "Current Temperature:" << T << std::endl;
     outFile << T << "," << accepted_moves << ","
 	    << rejected_moves << ","
 	    << currentHPWL << std::endl;
+    T *= COOL_RATE; // cool down
   }
 }
 
@@ -271,14 +271,14 @@ void annealingStatistics(std::ofstream& outFile,
   for (auto i: rows) 
     dWidth = std::max(dWidth, i->getSum());
   outFile << "Initial HPWL:\t" << initHPWL << std::endl
-	    << "Final HPWL:\t" << finalHPWL << std::endl
-	    << "Final Width:\t" << dWidth / 2.0 << std::endl
-	    << "Final Height:\t" << Height << std::endl
-	    << "Total Area:\t" << Height * dWidth / 2.0
-	    << std::endl << std::endl
-	    << "Coordinates of bottem-left corner of each cell" << std::endl;
+	  << "Final HPWL:\t" << finalHPWL << std::endl
+	  << "Final Width:\t" << dWidth / 2.0 << std::endl
+	  << "Final Height:\t" << Height << std::endl
+	  << "Total Area:\t" << Height * dWidth / 2.0
+	  << std::endl << std::endl
+	  << "Coordinates of bottem-left corner of each cell" << std::endl;
   for (auto i:nodes)
     outFile << i->getName() << "\t\t"
-	      << "X:" << i->getDoubleX() / 2.0 << "\t"
-	      << "Y:" << i->getY() << std::endl;
+	    << "X:" << i->getDoubleX() / 2.0 << "\t"
+	    << "Y:" << i->getY() << std::endl;
 }

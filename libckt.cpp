@@ -27,13 +27,13 @@ double node::netHPWLCal() {
     minDoubleX = std::min(minDoubleX, i->getDoubleX());
     maxDoubleX = std::max(maxDoubleX, i->getDoubleX());
     minY = std::min(minY, i->getY());
-    maxY = std::min(maxY, i->getY());
+    maxY = std::max(maxY, i->getY());
   }
   for (auto i : outputs) {
     minDoubleX = std::min(minDoubleX, i->getDoubleX());
     maxDoubleX = std::max(maxDoubleX, i->getDoubleX());
     minY = std::min(minY, i->getY());
-    maxY = std::min(maxY, i->getY());
+    maxY = std::max(maxY, i->getY());
   }
   return double(maxDoubleX-minDoubleX) / 2.0
     + double(maxY-minY);
