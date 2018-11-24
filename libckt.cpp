@@ -23,12 +23,14 @@ bool node::fPosition() {
 double node::netHPWLCal() {
   int minDoubleX = dX, minY = Y;
   int maxDoubleX = dX, maxY = Y;
+  /*
   for (auto i : inputs) {
     minDoubleX = std::min(minDoubleX, i->getDoubleX());
     maxDoubleX = std::max(maxDoubleX, i->getDoubleX());
     minY = std::min(minY, i->getY());
     maxY = std::max(maxY, i->getY());
   }
+  */
   for (auto i : outputs) {
     minDoubleX = std::min(minDoubleX, i->getDoubleX());
     maxDoubleX = std::max(maxDoubleX, i->getDoubleX());
